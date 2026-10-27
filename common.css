@@ -1,5 +1,4 @@
 @font-face { font-family: "Serif"; src: url("fonts/DMSerifDisplay-Regular.ttf"); font-display: swap; }
-@font-face { font-family: "Nunito"; src: url("fonts/Nunito-VariableFont_wght.ttf"); font-weight: 200 1000; font-display: swap; }
 :root {
   --bg: #1b1216; --bg2: #2a1a1f; --card: #33222a; --card2: #3f2a33; --line: rgba(247,234,217,.12);
   --cream: #f7ead9; --muted: #c9b3a6; --dim: #8f7a72;
@@ -26,3 +25,8 @@ html, body { margin: 0; background: var(--bg); color: var(--cream); font-family:
 .tcard.has-poster .glyph { display: none; }
 .tcard.has-poster::after { background: linear-gradient(transparent 45%, rgba(10,6,8,.92) 88%); }
 .tcard.bare.has-poster .kicker, .tcard.bare.has-poster .t, .tcard.bare.has-poster .meta { display: none; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-400.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-600.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-900.ttf") format("truetype"); font-weight: 900; font-display: swap; }

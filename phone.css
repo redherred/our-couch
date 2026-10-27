@@ -103,3 +103,9 @@ textarea { width: 100%; font: inherit; font-size: 17px; font-weight: 600; paddin
 .shbtns { display: flex; gap: 10px; } .shbtns .btn { margin-top: 14px; font-size: 18px; padding: 15px 10px; }
 .shov { font-size: 17px; line-height: 1.55; font-weight: 600; color: var(--cream); margin: 16px 0 6px; white-space: pre-line; }
 .rlist .rmore { color: var(--amber); font-weight: 900; }
+
+/* ---- v0.4.0: ported from the Fire TV app v0.5.2 ---- */
+/* v0.5: up to 6 people */
+.av-sage { background: var(--sage); } .av-gold { background: var(--gold); } .av-plum { background: #b07aa1; } .av-sky { background: #7fb3e0; }
+.partner .av + .av { margin-left: -6px; } .rsec { margin: 22px 0 4px; font-size: 18px; color: var(--amber); }
+:root { --sky: #7fb3e0; --plum2: #b07aa1; }

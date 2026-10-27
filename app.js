@@ -41,12 +41,12 @@
       var sig = (S.deck || []).map(function (m) { return m.id; }).join(",");
       if (sig !== deckSig) { deckSig = sig; idx = S.you.next; history = []; drawStack(); }
       if (idx < S.deck.length) { view("vSwipe"); updateCount(); }
-      else { view("vWait"); var o = partner(); $("waitTxt").textContent = o ? (o.done ? "Finishing up…" : "Waiting for " + o.name + " (" + o.progress + " of " + S.deckSize + ")") : "Waiting…"; }
+      else { view("vWait"); var w = others().filter(function (p) { return !p.done; }); $("waitTxt").textContent = w.length ? "Waiting for " + w.map(function (p) { return p.name + " (" + p.progress + " of " + S.deckSize + ")"; }).join(", ") : "Finishing up…"; }
       return;
     }
     if (S.phase === "results") { view("vResults"); renderResults(); deckSig = ""; }
   }
-  function partner() { var o = null; (S.players || []).forEach(function (p) { if (!p.you) o = p; }); return o; }
+  function others() { return (S.players || []).filter(function (p) { return !p.you; }); }
 
   // ---------------------------------------------------------------- join
   function renderQuick() {
@@ -74,14 +74,17 @@
 
   // ---------------------------------------------------------------- lobby
   function renderLobby() {
-    var o = partner();
-    $("partner").innerHTML = o ? '<div class="av av-' + o.color + '">' + esc(o.name.charAt(0).toUpperCase()) + "</div>" + esc(o.name) + " is here too 💛"
-                               : '<div class="av av-empty">?</div><span style="color:var(--muted)">Waiting for your partner to scan the TV…</span>';
+    var o = others();
+    $("partner").innerHTML = o.length ? o.map(function (p) { return '<div class="av av-' + p.color + '">' + esc(p.name.charAt(0).toUpperCase()) + "</div>"; }).join("") + esc(o.map(function (p) { return p.name; }).join(", ")) + (o.length === 1 ? " is" : " are") + " here too 💛"
+                               : '<div class="av av-empty">?</div><span style="color:var(--muted)">Waiting for someone else to scan the TV…</span>';
     var f = S.filters, h = "";
     S.moodDefs.forEach(function (m) { h += '<button class="chip' + (f.moods.indexOf(m.key) >= 0 ? " on" : "") + '" data-mood="' + m.key + '">' + esc(m.label) + "</button>"; });
     $("moods").innerHTML = h;
     h = ""; RT.forEach(function (r) { h += '<button class="chip' + (f.maxRuntime === r[0] ? " on" : "") + '" data-rt="' + r[0] + '">' + r[1] + "</button>"; });
     $("rts").innerHTML = h;
+    [["hols", S.holidayDefs, "holiday"], ["eras", S.eraDefs, "era"], ["rateds", S.ratedDefs, "rated"]].forEach(function (x) {   // v0.5.1 single-pick rows
+      $(x[0]).innerHTML = (x[1] || []).map(function (d) { return '<button class="chip' + ((f[x[2]] || "") === d.key ? " on" : "") + '" data-v="' + d.key + '">' + esc(d.label) + "</button>"; }).join("");
+    });
     h = ""; S.installed.forEach(function (a) { h += '<button class="chip' + (f.services.indexOf(a.key) >= 0 ? " on" : "") + (S.tmdb ? "" : " dis") + '" data-svc="' + a.key + '">' + esc(a.name) + "</button>"; });
     $("svcs").innerHTML = h;
     $("svcWrap").classList.toggle("hidden", !S.installed.length);
@@ -97,6 +100,12 @@
   $("rts").addEventListener("click", function (e) {
     var k = e.target.getAttribute("data-rt"); if (k === null) return;
     S.filters.maxRuntime = +k; renderLobby(); api("/api/filters", { maxRuntime: +k });
+  });
+  ["hols", "eras", "rateds"].forEach(function (id) {
+    $(id).addEventListener("click", function (e) {
+      var v = e.target.getAttribute("data-v"); if (v === null) return;
+      var fk = $(id).getAttribute("data-f"), o = {}; o[fk] = v; S.filters[fk] = v; renderLobby(); api("/api/filters", o);
+    });
   });
   $("svcs").addEventListener("click", function (e) {
     var k = e.target.getAttribute("data-svc"); if (!k) return;
@@ -200,7 +209,7 @@
   });
   $("rList").addEventListener("click", function (e) {
     var el = e.target.closest && e.target.closest("[data-mid]"); if (!el) return;
-    var id = el.getAttribute("data-mid"), r = S.results || {}, all = (r.matches || []).concat((r.closest || []).map(function (c) { return c.movie; }));
+    var id = el.getAttribute("data-mid"), r = S.results || {}, all = (r.matches || []).concat((r.majority || []).concat(r.closest || []).map(function (c) { return c.movie; }));
     for (var i = 0; i < all.length; i++) if (all[i].id === id) { openSheet(all[i]); return; }
   });
 
@@ -226,8 +235,14 @@
     if (r.matches.length) {
       $("rTitle").textContent = r.matches.length === 1 ? "It's a match!" : r.matches.length + " matches!";
       $("rSub").textContent = "Pick one on the TV to watch.";
-      r.matches.forEach(function (m) { h += row(m, "Both said yes" + where(m)); });
-    } else {
+      r.matches.forEach(function (m) { h += row(m, ((r.people || 2) > 2 ? "Everyone said yes" : "Both said yes") + where(m)); });
+    }
+    if ((r.majority || []).length) {
+      if (!r.matches.length) { $("rTitle").textContent = "Most of you liked…"; $("rSub").textContent = "No movie got everyone, but these got most of you."; }
+      h += '<h3 class="rsec">Most of you liked</h3>';
+      r.majority.forEach(function (c) { h += row(c.movie, c.why + where(c.movie)); });
+    }
+    if (!r.matches.length && !(r.majority || []).length) {
       $("rTitle").textContent = "No perfect match";
       $("rSub").textContent = r.closest.length ? "Closest calls (they're on the TV too):" : "Try a new round with different moods.";
       r.closest.forEach(function (c) { h += row(c.movie, c.why + where(c.movie)); });

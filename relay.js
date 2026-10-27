@@ -56,7 +56,8 @@
   /** opts: {url, user, pass, onMessage(topic, string), onState(connected), keepalive} */
   function Mqtt(opts) {
     this.o = opts; this.ws = null; this.connected = false; this.subs = []; this.pid = 1; this.buf = new Uint8Array(0);
-    this.closed = false; this.backoff = 1000; this.ping = null; this.lastIn = 0; this.connect();
+    this.closed = false; this.backoff = 1000; this.ping = null; this.lastIn = 0; var me = this; if (w.addEventListener) w.addEventListener("online", function () { me.kick(); });   // relayfix
+    this.connect();
   }
   Mqtt.prototype.connect = function () {
     var self = this, o = this.o;
@@ -64,7 +65,7 @@
     var ws;
     try { ws = new WebSocket(o.url, ["mqtt"]); } catch (e) { this._retry(); return; }
     this.ws = ws; ws.binaryType = "arraybuffer";
-    var t = setTimeout(function () { if (!self.connected) { try { ws.close(); } catch (e) {} } }, o.timeout || 9000);
+    var t = setTimeout(function () { if (!self.connected) { try { ws.close(); } catch (e) {} } }, o.timeout || 20000);   // v0.4.0: was 9 s; TV socket opens take ~5-5.5 s and more on a cold boot
     ws.onopen = function () {
       var flags = 0x02, pay = [str("oc" + randomId(10))];
       if (o.user) { flags |= 0x80; pay.push(str(o.user)); }
@@ -84,8 +85,16 @@
   };
   Mqtt.prototype._retry = function () {
     var self = this; if (this.closed) return;
-    setTimeout(function () { self.connect(); }, this.backoff);
-    this.backoff = Math.min(this.backoff * 2, 30000);
+    clearTimeout(this.rt);
+    this.rt = setTimeout(function () { self.rt = null; self.connect(); }, this.backoff);
+    this.backoff = Math.min(this.backoff * 2, 8000);   // relayfix: was 30 s, which left the TV on "Connecting..." long after the network came back
+  };
+  // relayfix: when the network comes back (TV just booted, Wi-Fi rejoined), reconnect right away instead of waiting out the backoff.
+  Mqtt.prototype.kick = function () {
+    if (this.closed || this.connected) return;
+    this.backoff = 1000; clearTimeout(this.rt); this.rt = null;
+    var ws = this.ws; this.ws = null; if (ws) { try { ws.onclose = ws.onerror = null; ws.close(); } catch (e) {} }
+    this.connect();
   };
   Mqtt.prototype._send = function (a) { if (this.ws && this.ws.readyState === 1) { this.ws.send(a); return true; } return false; };
   Mqtt.prototype._data = function (chunk) {
