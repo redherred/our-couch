@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Our Couch · Date ideas</title><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="phone.css"></head>
+<body><main id="app">
+  <header class="top"><span class="brand serif">Our Couch</span><a class="who" href="index.html">Movie night ›</a></header>
+  <h2 class="serif">Date Night Spinner</h2>
+  <p class="lead">Add your own ideas to the wheel on the TV.</p>
+  <label for="idea">New idea</label>
+  <input id="idea" maxlength="120" placeholder="e.g. Tacos then the river walk">
+  <div class="quick" id="kind"><button type="button" data-k="out">Go out</button><button type="button" data-k="home">Stay in</button></div>
+  <p id="msg" class="err"></p>
+  <h3>Your ideas</h3><div id="mine" class="list"></div>
+  <h3>Location</h3>
+  <p class="small">Local spots on the wheel are for this area. Change it if the TV moves.</p>
+  <input id="loc" maxlength="60"><button id="saveLoc" class="btn ghost">Save location</button>
+</main>
+<script src="nacl-fast.min.js"></script>
+<script src="relay.js"></script>
+<script src="net.js"></script>
+<script src="cards.js"></script>
+<script>if (!CouchNet.paired) location.replace("index.html");</script>
+<script>
+(function () {
+  var esc = CouchCards.esc, who = localStorage.getItem("couch.name") || "";
+  function $(i) { return document.getElementById(i); }
+  function post(p, b) { return CouchFetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(function (r) { return r.json(); }); }
+  function load() {
+    CouchFetch("/api/dates", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
+      if (document.activeElement !== $("loc")) $("loc").value = d.location;
+      $("mine").innerHTML = d.mine.length ? d.mine.map(function (x) {
+        return '<div class="li"><span>' + (x.kind === "out" ? "🚗 " : "🏠 ") + esc(x.title) + '</span><button class="link" data-id="' + esc(x.id) + '">Remove</button></div>';
+      }).join("") : '<p class="small">None yet.</p>';
+    });
+  }
+  $("kind").addEventListener("click", function (e) {
+    var k = e.target.getAttribute("data-k"); if (!k) return;
+    var t = $("idea").value.trim(); if (!t) { $("msg").textContent = "Type an idea first"; return; }
+    post("/api/dates", { text: t, kind: k, by: who }).then(function (j) { $("msg").textContent = j.ok ? "Added to the wheel ✓" : j.error; if (j.ok) $("idea").value = ""; load(); });
+  });
+  $("mine").addEventListener("click", function (e) { var id = e.target.getAttribute("data-id"); if (id) post("/api/dates/remove", { id: id }).then(load); });
+  $("saveLoc").onclick = function () { post("/api/location", { location: $("loc").value }).then(function () { $("msg").textContent = "Location saved ✓"; load(); }); };
+  load();
+})();
+</script></body></html>

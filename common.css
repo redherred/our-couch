@@ -1,0 +1,28 @@
+@font-face { font-family: "Serif"; src: url("fonts/DMSerifDisplay-Regular.ttf"); font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/Nunito-VariableFont_wght.ttf"); font-weight: 200 1000; font-display: swap; }
+:root {
+  --bg: #1b1216; --bg2: #2a1a1f; --card: #33222a; --card2: #3f2a33; --line: rgba(247,234,217,.12);
+  --cream: #f7ead9; --muted: #c9b3a6; --dim: #8f7a72;
+  --amber: #f4a259; --rose: #e86a6a; --plum: #6b3a5b; --sage: #8fb996; --gold: #ffd37a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--cream); font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.serif { font-family: "Serif", Georgia, "Times New Roman", serif; font-weight: 400; }
+.amber { color: var(--amber); } .rose { color: var(--rose); }
+
+/* Generated title card (used when there is no poster we may show) */
+.tcard { position: relative; overflow: hidden; border-radius: 22px; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 7% 8%; color: #fff8ef; box-shadow: 0 18px 50px rgba(0,0,0,.45); isolation: isolate; }
+.tcard::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; background: var(--g); }
+.tcard::after { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
+  background: radial-gradient(120% 70% at 85% 0%, rgba(255,255,255,.22), transparent 55%), linear-gradient(transparent 35%, rgba(0,0,0,.55)); }
+.tcard .glyph { position: absolute; right: -6%; top: -4%; width: 62%; opacity: .16; }
+.tcard .kicker { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; font-size: .8em; }
+.tcard .t { font-family: "Serif", Georgia, serif; line-height: 1.02; margin: .25em 0 .3em; text-shadow: 0 2px 18px rgba(0,0,0,.35); word-break: break-word; }
+.tcard .meta { font-weight: 700; opacity: .92; }
+.tcard img.poster { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+.tcard.has-poster::before { display: none; }
+
+.tcard.has-poster .glyph { display: none; }
+.tcard.has-poster::after { background: linear-gradient(transparent 45%, rgba(10,6,8,.92) 88%); }
+.tcard.bare.has-poster .kicker, .tcard.bare.has-poster .t, .tcard.bare.has-poster .meta { display: none; }

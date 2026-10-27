@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Our Couch · Settings</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="phone.css">
+</head>
+<body>
+<main id="app">
+  <header class="top"><span class="brand serif">Our Couch</span><a class="who" href="index.html">‹ Back</a></header>
+  <h2 class="serif">TMDB key</h2>
+  <p class="lead">The TV already has a key built in, so this is only for changing it. With a key, the matcher deals fresh movies and knows which of your apps stream each one. It's stored only on the TV.</p>
+  <p id="status" class="fit"></p>
+  <label for="key">API key or read access token</label>
+  <input id="key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="paste here">
+  <button id="save" class="btn primary">Save on the TV</button>
+  <button id="reset" class="btn ghost">Use the built-in key</button>
+  <button id="remove" class="btn ghost">Turn TMDB off (saved list only)</button>
+  <p id="msg" class="err"></p>
+  <p class="small">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</main>
+<script src="nacl-fast.min.js"></script>
+<script src="relay.js"></script>
+<script src="net.js"></script>
+<script src="cards.js"></script>
+<script>if (!CouchNet.paired) location.replace("index.html");</script>
+<script>
+(function () {
+  var pid = localStorage.getItem("couch.pid") || "";
+  function $(i) { return document.getElementById(i); }
+  function status() {
+    CouchFetch("/api/settings", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      $("status").textContent = j.tmdb ? (j.builtIn ? "Connected (built-in key)" : "Connected (your key)") : "Off: using the saved movie list";
+    });
+  }
+  function send(key, reset) {
+    if (!pid) { $("msg").textContent = "Join the couch on the main page first."; return; }
+    $("msg").textContent = key ? "Checking with TMDB…" : "";
+    CouchFetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid: pid, tmdbKey: key, reset: !!reset }) })
+      .then(function (r) { return r.json(); }).then(function (j) { $("msg").textContent = j.ok ? (j.tmdb ? "Saved ✓" : "Removed") : j.error; $("key").value = ""; status(); })
+      .catch(function () { $("msg").textContent = "Can't reach the TV"; });
+  }
+  $("save").onclick = function () { var k = $("key").value.trim(); if (k) send(k); };
+  $("remove").onclick = function () { send(""); };
+  $("reset").onclick = function () { send("", true); };
+  status();
+})();
+</script>
+</body>
+</html>

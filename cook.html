@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Couch · Cook Together</title><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="phone.css">
+<style>
+  .tabs { display: flex; background: var(--card); border-radius: 16px; padding: 5px; margin: 16px 0 4px; }
+  .tabs button { flex: 1; font: inherit; font-size: 17px; font-weight: 900; padding: 13px 8px; border: 0; border-radius: 12px; background: none; color: var(--muted); cursor: pointer; }
+  .tabs button.on { background: var(--amber); color: #2a1a1f; }
+  .pastebox { position: relative; }
+  .pastebox textarea { min-height: 112px; font-size: 19px; padding-right: 18px; }
+  textarea { width: 100%; font: inherit; font-size: 18px; font-weight: 600; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--line); background: var(--card); color: var(--cream); outline: none; resize: vertical; line-height: 1.4; }
+  textarea:focus { border-color: var(--amber); }
+  .row2 { display: flex; gap: 10px; } .row2 .btn { margin-top: 12px; } .row2 .ghost { flex: 0 0 38%; }
+  .status { margin-top: 16px; padding: 15px 16px; border-radius: 16px; font-weight: 800; font-size: 17px; line-height: 1.4; display: none; }
+  .status.on { display: block; }
+  .status.busy { background: rgba(247,234,217,.08); color: var(--cream); }
+  .status.ok { background: rgba(143,185,150,.18); color: #bfe6c5; border: 2px solid rgba(143,185,150,.5); }
+  .status.bad { background: rgba(232,106,106,.15); color: #ffb3b3; border: 2px solid rgba(232,106,106,.5); }
+  .status .sub { display: block; font-weight: 600; font-size: 15px; opacity: .9; margin-top: 4px; }
+  .mini { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 3px solid rgba(247,234,217,.25); border-top-color: var(--amber); animation: spin 1s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  .hint { color: var(--dim); font-size: 14px; font-weight: 600; margin-top: 8px; }
+  .li { display: flex; justify-content: space-between; align-items: center; background: var(--card); border-radius: 14px; padding: 12px 14px; margin-top: 8px; font-weight: 800; }
+  .li small { color: var(--muted); font-weight: 700; }
+</style></head>
+<body><main id="app">
+  <header class="top"><span class="brand serif">Our Couch</span><a class="who" href="index.html">Movie night ›</a></header>
+  <h2 class="serif">Cook Together</h2>
+  <p class="lead">Send recipes to the TV. Add as many as you like.</p>
+  <div class="tabs"><button id="tabLink" class="on" type="button">Paste a link</button><button id="tabType" type="button">Type a recipe</button></div>
+
+  <section id="pLink">
+    <label for="url">Recipe or YouTube link</label>
+    <div class="pastebox"><textarea id="url" rows="3" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste a recipe page or YouTube link…"></textarea></div>
+    <div class="row2"><button id="pasteBtn" class="btn ghost" type="button">📋 Paste</button><button id="addUrl" class="btn primary" type="button">Send to TV</button></div>
+    <p id="pasteHint" class="hint"></p>
+  </section>
+
+  <section id="pType" class="hidden">
+    <label for="t">Recipe name</label><input id="t" maxlength="80" placeholder="Grandma's enchiladas" autocomplete="off">
+    <label for="ing">Ingredients, one per line</label><textarea id="ing" rows="6" placeholder="2 cups flour&#10;1 tsp salt"></textarea>
+    <label for="steps">Steps, one per line</label><textarea id="steps" rows="7" placeholder="Preheat the oven to 375°F&#10;Mix the dry ingredients"></textarea>
+    <button id="addTyped" class="btn primary" type="button">Send to TV</button>
+  </section>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <h3>On the TV</h3><div id="list" class="list"></div>
+</main>
+<script src="nacl-fast.min.js"></script>
+<script src="relay.js"></script>
+<script src="net.js"></script>
+<script src="cards.js"></script>
+<script>if (!CouchNet.paired) location.replace("index.html");</script>
+<script>
+(function () {
+  var F = window.CouchFetch || function (u, o) { return fetch(u, o); };     // Samsung build: relay fetch
+  var esc = CouchCards.esc, who = localStorage.getItem("couch.name") || "", busy = false;
+  function $(i) { return document.getElementById(i); }
+  function post(p, b) { return F(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(function (r) { return r.json(); }); }
+  function status(kind, html) { var s = $("status"); s.className = "status on " + kind; s.innerHTML = html; if (kind !== "busy") s.scrollIntoView && s.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  function tab(t) {
+    $("tabLink").classList.toggle("on", t === "link"); $("tabType").classList.toggle("on", t === "type");
+    $("pLink").classList.toggle("hidden", t !== "link"); $("pType").classList.toggle("hidden", t !== "type");
+  }
+  $("tabLink").onclick = function () { tab("link"); }; $("tabType").onclick = function () { tab("type"); };
+  // first http(s) link in whatever was pasted (share sheets often add text around it)
+  function pickUrl(s) { var m = /https?:\/\/[^\s<>"']+/i.exec(s || ""); return m ? m[0].replace(/[).,;!]+$/, "") : ""; }
+  function load() {
+    F("/api/recipes", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (d) {
+      $("list").innerHTML = d.recipes.length ? d.recipes.map(function (x) {
+        var info = [x.video ? "▶ video" : "", x.steps.length ? x.steps.length + " steps" : ""].filter(Boolean).join(", ");
+        return '<div class="li"><span>' + esc(x.title) + ' <small>(' + info + ')</small>' + (x.recipeUrl ? ' <a class="small" href="' + esc(x.recipeUrl) + '" target="_blank" rel="noopener">recipe page ↗</a>' : "") +
+          '</span><button class="link" data-id="' + esc(x.id) + '">Remove</button></div>';
+      }).join("") : '<p class="small">No recipes yet.</p>';
+    }).catch(function () {});
+  }
+  // Paste button: the clipboard API only works on https pages (and some browsers ask first)
+  var canRead = !!(navigator.clipboard && navigator.clipboard.readText && window.isSecureContext);
+  $("pasteHint").textContent = canRead ? "" : "Tip: long-press the box and tap Paste.";
+  $("pasteBtn").onclick = function () {
+    if (!canRead) { $("url").focus(); status("busy", "Long-press the box above and tap <b>Paste</b>, then <b>Send to TV</b>."); return; }
+    navigator.clipboard.readText().then(function (t) {
+      var u = pickUrl(t);
+      if (!u) { status("bad", "Your clipboard doesn't have a link in it.<span class=\"sub\">Copy the recipe or YouTube link first, then tap Paste.</span>"); return; }
+      $("url").value = u; sendLink();
+    }).catch(function () { $("url").focus(); status("busy", "Long-press the box above and tap <b>Paste</b>."); });
+  };
+  function sendLink() {
+    if (busy) return;
+    var raw = $("url").value.trim(), u = pickUrl(raw) || raw;
+    if (!u) { status("bad", "Paste a link first."); $("url").focus(); return; }
+    if (!/^https?:\/\//i.test(u)) { status("bad", "That doesn't look like a link.<span class=\"sub\">It should start with https://</span>"); return; }
+    busy = true; $("addUrl").disabled = true;
+    status("busy", '<span class="mini"></span>' + (/youtu\.?be/i.test(u) ? "Reading the video…" : "Reading the recipe…"));
+    post("/api/recipes/link", { url: u }).then(function (j) {
+      if (!j.ok) { status("bad", esc(j.error || "Couldn't add that one") + '<span class="sub">You can also switch to “Type a recipe”.</span>'); return; }
+      var r = j.recipe, note = r.video ? (r.steps.length ? r.steps.length + " steps from the " + (r.from || "video") : "Video recipe: no written steps, cook along with the video") : r.steps.length + " steps, " + (r.ingredients || []).length + " ingredients";
+      status("ok", "✓ On the TV: <b>" + esc(r.title) + '</b><span class="sub">' + esc(note) + ". Paste another link to add more.</span>");
+      $("url").value = ""; load();
+    }).catch(function () { status("bad", "Can't reach the TV.<span class=\"sub\">Make sure Our Couch is open on the TV and your phone has internet.</span>"); })
+      .then(function () { busy = false; $("addUrl").disabled = false; });
+  }
+  $("addUrl").onclick = sendLink;
+  $("url").addEventListener("paste", function () { setTimeout(function () { var u = pickUrl($("url").value); if (u) { $("url").value = u; sendLink(); } }, 50); });
+  $("addTyped").onclick = function () {
+    if (busy) return;
+    var t = $("t").value.trim(), st = $("steps").value.trim();
+    if (!t) { status("bad", "Give the recipe a name."); $("t").focus(); return; }
+    if (!st) { status("bad", "Add at least one step."); $("steps").focus(); return; }
+    busy = true; $("addTyped").disabled = true; status("busy", '<span class="mini"></span>Sending…');
+    post("/api/recipes/typed", { title: t, ingredients: $("ing").value, steps: st, by: who }).then(function (j) {
+      if (!j.ok) { status("bad", esc(j.error || "Couldn't save it")); return; }
+      status("ok", "✓ On the TV: <b>" + esc(j.recipe.title) + '</b><span class="sub">' + j.recipe.steps.length + " steps, " + j.recipe.ingredients.length + " ingredients. The form is clear for the next one.</span>");
+      $("t").value = $("ing").value = $("steps").value = ""; load();
+    }).catch(function () { status("bad", "Can't reach the TV. Your recipe is still in the form, try again."); })
+      .then(function () { busy = false; $("addTyped").disabled = false; });
+  };
+  $("list").addEventListener("click", function (e) { var id = e.target.getAttribute("data-id"); if (id) post("/api/recipes/remove", { id: id }).then(load); });
+  if (/[?&]tab=type/.test(location.search)) tab("type");
+  load();
+  CouchNet.onStatus(function (up) { if (up) load(); });          // relay connects after the page loads
+})();
+</script></body></html>

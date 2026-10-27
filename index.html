@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1b1216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Our Couch · Movie Night</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="phone.css">
+</head>
+<body>
+<main id="app">
+  <header class="top"><span class="brand serif">Our Couch</span><span id="who" class="who"></span></header>
+
+  <div id="net" class="netbar hidden">Reconnecting to the TV…</div>
+
+  <section id="vPair" class="view hidden">
+    <h1 class="serif">Our Couch</h1>
+    <p class="lead">Scan the code on the TV with your camera, or type the pairing code shown under it.</p>
+    <form id="pairForm" autocomplete="off">
+      <label for="code">Pairing code</label>
+      <input id="code" maxlength="16" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX">
+      <button class="btn primary" type="submit">Connect</button>
+    </form>
+    <p id="pairErr" class="err"></p>
+  </section>
+
+  <section id="vConnect" class="view hidden center"><div class="spinner"></div><h2 class="serif">Connecting to the TV…</h2>
+    <p id="connTxt" class="lead">Make sure Our Couch is open on the TV.</p></section>
+
+  <section id="vJoin" class="view hidden">
+    <h1 class="serif">Movie Night<br><span class="amber">Matcher</span></h1>
+    <p class="lead">Swipe on movies. When you both say yes, the TV shows your match.</p>
+    <form id="joinForm" autocomplete="off">
+      <label>Who's this?</label>
+      <div id="quick" class="quick"></div>
+      <label for="name">Or type a name</label>
+      <input id="name" maxlength="16" autocapitalize="words" enterkeyhint="go" placeholder="e.g. Sofia">
+      <button class="btn primary" type="submit">Join the couch</button>
+    </form>
+    <p id="joinErr" class="err"></p>
+    <p class="small center navlinks">Also: <a href="dates.html">add date ideas</a> · <a href="cook.html">send a recipe</a> · <a href="#" class="unpair">use another TV</a></p>
+  </section>
+
+  <section id="vLobby" class="view hidden">
+    <div id="partner" class="partner"></div>
+    <h3>Tonight's mood</h3>
+    <div id="moods" class="chips"></div>
+    <h3>How long?</h3>
+    <div id="rts" class="chips"></div>
+    <div id="svcWrap"><h3>Streaming apps on the TV</h3><div id="svcs" class="chips"></div></div>
+    <p id="fit" class="fit"></p>
+    <button id="startBtn" class="btn primary">Start swiping</button>
+    <p class="small center"><a href="dates.html">Date ideas</a> · <a href="cook.html">Recipes</a> · <a href="settings.html">TMDB</a> · <a href="#" id="leave">Leave</a></p>
+  </section>
+
+  <section id="vBuild" class="view hidden center"><div class="spinner"></div><h2 class="serif">Shuffling the deck…</h2></section>
+
+  <section id="vSwipe" class="view hidden">
+    <div class="deckbar"><span id="count"></span><button id="undo" class="link">↶ Undo</button></div>
+    <div id="stack" class="stack"></div>
+    <div class="actions">
+      <button class="round no" id="bNo" aria-label="No">✕</button>
+      <button class="round maybe" id="bMaybe" aria-label="Maybe">?</button>
+      <button class="round yes" id="bYes" aria-label="Yes">♥</button>
+    </div>
+    <p class="small center hintline">Swipe right = yes · left = no · up = maybe</p>
+  </section>
+
+  <section id="vWait" class="view hidden center">
+    <div class="bigicon">🍿</div>
+    <h2 class="serif">All done!</h2>
+    <p id="waitTxt" class="lead"></p>
+  </section>
+
+  <section id="vResults" class="view hidden">
+    <h2 id="rTitle" class="serif center"></h2>
+    <p id="rSub" class="lead center"></p>
+    <div id="rList" class="rlist"></div>
+    <button id="againBtn" class="btn ghost">New round</button>
+  </section>
+
+  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <div class="sheetbg" data-close="1"></div>
+    <div class="sheetbody">
+      <button class="shclose" data-close="1" aria-label="Close">✕</button>
+      <div id="shMedia" class="shmedia"></div>
+      <h2 id="shTitle" class="serif"></h2>
+      <div id="shMeta" class="shmeta"></div>
+      <div id="shGenres" class="shgenres"></div>
+      <div id="shWhere" class="shwhere"></div>
+      <div id="shTrailer" class="shbtns"><button id="shPlay" class="btn primary" type="button">▶ Watch trailer</button><button id="shTv" class="btn ghost" type="button">📺 Play on TV</button></div>
+      <p id="shOv" class="shov"></p>
+      <p id="shYt" class="small center"></p>
+      <button class="btn ghost" data-close="1" type="button">Back to swiping</button>
+      <p class="small center">Details from TMDB. Closing this doesn't count as a swipe.</p>
+    </div>
+  </div>
+  <div id="matchPop" class="matchpop hidden"></div>
+  <div id="toast" class="toast hidden"></div>
+</main>
+<script src="nacl-fast.min.js"></script>
+<script src="relay.js"></script>
+<script src="net.js"></script>
+<script src="cards.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
